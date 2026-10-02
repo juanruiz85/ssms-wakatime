@@ -30,11 +30,11 @@ if %errorlevel% equ 0 (
     ECHO "Added WakaTime for SSMS 2017"
 )
 
-REM SQL SERVER MANAGEMENT STUDIO 2018
+REM SQL SERVER MANAGEMENT STUDIO 2018 / 19 / 20+ (v18+ share the same registry hive version)
 REG QUERY "HKEY_CURRENT_USER\Software\Microsoft\SQL Server Management Studio\15.0" > nul 2> nul
 if %errorlevel% equ 0 (
     REG ADD "HKEY_CURRENT_USER\Software\Microsoft\SQL Server Management Studio\15.0\Packages\{52d9c3ff-c893-408e-95e4-d7484ec7fa47}" /v SkipLoading /t REG_DWORD /d 1
-    ECHO "Added WakaTime for SSMS 2018"
+    ECHO "Added WakaTime for SSMS 2018+"
 )
 
 ECHO All packages were successfully added

@@ -2,6 +2,14 @@ History
 -------
 
 
+4.2.0 ( unreleased )
+++++++++++++++++++
+
+- Add SSMS20 project targeting the Visual Studio 2022 (v17.x) shell used by
+  SSMS v20, v21 and Microsoft SQL Management Studio 22
+- Bump Microsoft.VisualStudio.SDK to 17.0.x and VSSDK BuildTools to 17.0.x for the new project
+
+
 4.1.1 (2024-02-18)
 ++++++++++++++++++
 

@@ -25,9 +25,15 @@ Metrics, insights, and time tracking automatically generated from your programmi
     3. For SSMS `v19`:
         1. Copy the folder `WakaTime.v18` to the desired installation folder:
             * v19 - `C:\Program Files (x86)\Microsoft SQL Server Management Studio 19\Common7\IDE\Extensions\`
-    4. For SSMS `v20`:
-        1. Copy the folder `WakaTime.v18` to the desired installation folder:
-            * v19 - `C:\Program Files (x86)\Microsoft SQL Server Management Studio 20\Common7\IDE\Extensions\`
+    4. For SSMS `v20` / `v21` (Microsoft SQL Management Studio 22):
+        1. Build the `SSMS20` project (`SSMS20\SSMS20.csproj`) in `Release` mode.
+        2. Copy the folder `WakaTime.v20` (output of the `SSMS20` project) to the desired installation folder:
+            * v20 - `C:\Program Files\Microsoft SQL Server Management Studio 20\Common7\IDE\Extensions\`
+            * v21 - `C:\Program Files\Microsoft SQL Server Management Studio 21\Common7\IDE\Extensions\`
+            * Microsoft SQL Management Studio 22 - `C:\Program Files\Microsoft SQL Server Management Studio 22\Common7\IDE\Extensions\`
+        > Note: SSMS v20+ is built on the Visual Studio 2022 (v17.x) shell, so it requires the
+        > `SSMS20` project binaries compiled against the VS 2022 SDK. The old `WakaTime.v18`
+        > binaries (built for the v15/v16 shell) will NOT load in SSMS v20+.
 
 6. Enter your [api key](https://wakatime.com/settings#apikey), then press `enter`.
 
@@ -48,6 +54,8 @@ Visit <https://wakatime.com> to see your coding activity.
 * SQL Server Management Studio 18 (build number 15.0.x.x)
 * SQL Server Management Studio 19 (build number 19.0.x.x)
 * SQL Server Management Studio 20 (build number 20.0.x.x)
+* SQL Server Management Studio 21 (build number 21.0.x.x)
+* Microsoft SQL Management Studio 22 (build number 22.0.x.x) - uses the `SSMS20` project (VS 2022 v17.x shell)
 
 ## Troubleshooting
 
