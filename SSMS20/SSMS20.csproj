@@ -2,7 +2,9 @@
 <Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <MinimumVisualStudioVersion>17.0</MinimumVisualStudioVersion>
-    <VsixCatalogVersion>17.0</VsixCatalogVersion>
+    <!-- Runner has VS 18 Insiders; force VSSDK to use VS 2022 (17.x) install so the
+         2.1.0 vsixmanifest schema (Architecture element) validates correctly -->
+    <VSSDKInstallCapability>Microsoft.VisualStudio.Component.VSSDK, version=[17.0,18.0)</VSSDKInstallCapability>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
     <TargetFrameworkProfile />
   </PropertyGroup>
