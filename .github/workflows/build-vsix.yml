@@ -1,0 +1,51 @@
+name: Build VSIX
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: '[17.0,)'
+
+      - name: Restore NuGet packages
+        working-directory: ${{ env.GITHUB_WORKSPACE }}
+        run: |
+          nuget restore SSMS20/SSMS20.csproj -PackagesDirectory packages || true
+          msbuild SSMS20/SSMS20.csproj -t:restore -p:RestorePackagesPath=packages
+
+      - name: Build SSMS20 (Release)
+        run: msbuild SSMS20/SSMS20.csproj -p:Configuration=Release -p:Platform=AnyCPU -p:DeployExtension=false -v:m
+
+      - name: Locate VSIX
+        id: findvsix
+        shell: pwsh
+        run: |
+          $vsix = Get-ChildItem -Recurse -Filter *.vsix | Where-Object { $_.FullName -match 'SSMS20' } | Select-Object -First 1
+          if (-not $vsix) { Write-Error "VSIX not found"; exit 1 }
+          Copy-Item $vsix.FullName "WakaTime.SSMS20.vsix"
+          "vsix=WakaTime.SSMS20.vsix" >> $env:GITHUB_OUTPUT
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WakaTime.SSMS20.vsix
+          path: WakaTime.SSMS20.vsix
+
+      - name: Upload VSIX to Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: WakaTime.SSMS20.vsix
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
