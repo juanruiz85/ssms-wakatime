@@ -101,3 +101,8 @@ _Pvt_Extensions
 
 _Release
 *.zip
+node_modules/
+.next/
+dist/
+build/
+*.log
