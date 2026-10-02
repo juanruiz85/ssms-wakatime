@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+<PackageManifest Version="2.1.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
         <Identity Publisher="WakaTime" Version="4.2.0" Id="52d9c3ff-c893-408e-95e4-d7484ec7fa47" Language="en-US" />
         <DisplayName>WakaTime</DisplayName>
@@ -11,15 +11,14 @@
         <Tags>code time, analytics, metrics, time tracking, time tracker, productivity, reports</Tags>
     </Metadata>
 
-    <Installation>
-        <InstallationTarget Version="[17.0,18.0)" Id="Microsoft.VisualStudio.IntegratedShell">
-            <Architecture>amd64</Architecture>
+    <Installation AllVersions="false">
+        <InstallationTarget Id="Microsoft.VisualStudio.IntegratedShell" Version="[17.0,18.0)">
+            <Architecture>x64</Architecture>
         </InstallationTarget>
     </Installation>
 
     <Dependencies>
         <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.8,)" />
-        <Dependency Id="Microsoft.VisualStudio.MPF.17.0" DisplayName="Visual Studio MPF 17.0" d:Source="Program" Version="[17.0,18.0)" />
     </Dependencies>
 
     <Assets>
