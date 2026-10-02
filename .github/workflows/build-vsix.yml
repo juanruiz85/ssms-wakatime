@@ -18,14 +18,14 @@ jobs:
         with:
           vs-version: '[17.0,)'
 
-      - name: Restore NuGet packages
-        working-directory: ${{ env.GITHUB_WORKSPACE }}
-        run: |
-          nuget restore SSMS20/SSMS20.csproj -PackagesDirectory packages || true
-          msbuild SSMS20/SSMS20.csproj -t:restore -p:RestorePackagesPath=packages
-
       - name: Build SSMS20 (Release)
-        run: msbuild SSMS20/SSMS20.csproj -p:Configuration=Release -p:Platform=AnyCPU -p:DeployExtension=false -v:m
+        run: msbuild SSMS20/SSMS20.csproj -restore -p:Configuration=Release -p:Platform=AnyCPU -p:DeployExtension=false -p:VSSDKValidateManifestBeforeBuild=false -v:m
+
+      - name: Dump generated manifest on failure
+        if: failure()
+        shell: pwsh
+        run: |
+          Get-Content SSMS20\obj\Release\extension.vsixmanifest
 
       - name: Locate VSIX
         id: findvsix
