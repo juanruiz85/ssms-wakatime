@@ -18,23 +18,42 @@ jobs:
         with:
           vs-version: '[17.0,)'
 
-      - name: Build SSMS20 (Release)
-        run: msbuild SSMS20/SSMS20.csproj -restore -p:Configuration=Release -p:Platform=AnyCPU -p:DeployExtension=false -p:VSSDKValidateManifestBeforeBuild=false -v:m
+      - name: Compile SSMS20 (Release DLL)
+        run: msbuild SSMS20/SSMS20.csproj -restore -p:Configuration=Release -p:Platform=AnyCPU -p:DeployExtension=false -v:m
 
-      - name: Dump generated manifest on failure
-        if: failure()
+      - name: Download VSSDK 17.9 BuildTools (known-good schema 2.1.0 validator)
         shell: pwsh
         run: |
+          nuget install Microsoft.VSSDK.BuildTools -Version 17.9.3184 -OutputDirectory tools
+          "VSSDK=$env:GITHUB_WORKSPACE\tools\Microsoft.VSSDK.BuildTools.17.9.3184\tools\VSSDK" >> $env:GITHUB_ENV
+
+      - name: Generate extension.vsixmanifest (ConvertVsixSourceManifest)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path SSMS20\obj\Release | Out-Null
+          & "$env:VSSDK\bin\ConvertVsixSourceManifest.exe" "SSMS20\source.extension.vsixmanifest" "SSMS20\obj\Release\extension.vsixmanifest" "WakaTime.pkgdef"
           Get-Content SSMS20\obj\Release\extension.vsixmanifest
 
-      - name: Locate VSIX
-        id: findvsix
+      - name: Create VSIX package (CreateVsixContainer)
         shell: pwsh
         run: |
-          $vsix = Get-ChildItem -Recurse -Filter *.vsix | Where-Object { $_.FullName -match 'SSMS20' } | Select-Object -First 1
-          if (-not $vsix) { Write-Error "VSIX not found"; exit 1 }
-          Copy-Item $vsix.FullName "WakaTime.SSMS20.vsix"
-          "vsix=WakaTime.SSMS20.vsix" >> $env:GITHUB_OUTPUT
+          $files = @(
+            @{ Src="SSMS20\bin\Release\WakaTime.dll";          Dst="WakaTime.dll" },
+            @{ Src="SSMS20\bin\Release\WakaTime.pkgdef";       Dst="WakaTime.pkgdef" },
+            @{ Src="SSMS20\obj\Release\extension.vsixmanifest";Dst="extension.vsixmanifest" },
+            @{ Src="SSMS20\WakaTime.vsct";                       Dst="WakaTime.vsct" }
+          )
+          if (Test-Path "SSMS20\LICENSE") { $files += @{ Src="SSMS20\LICENSE"; Dst="License.rtf" } }
+          if (Test-Path "SSMS20\Assets\wakatime-120.png") { $files += @{ Src="SSMS20\Assets\wakatime-120.png"; Dst="Resources\wakatime-120.png" } }
+          if (Test-Path "SSMS20\Assets\dashboard.png") { $files += @{ Src="SSMS20\Assets\dashboard.png"; Dst="Resources\dashboard.png" } }
+          $args = @("$env:VSSDK\bin\CreateVsixContainer.exe", "-manifest", "SSMS20\obj\Release\extension.vsixmanifest", "-vsix", "WakaTime.SSMS20.vsix")
+          foreach ($f in $files) { $args += @("-file", "$($f.Dst)=$($f.Src)") }
+          & $args[0] $args[1..($args.Length-1)]
+          if (-not (Test-Path WakaTime.SSMS20.vsix)) { Write-Error "VSIX not created"; exit 1 }
+
+      - name: Validate VSIX (VSIXValidator)
+        shell: pwsh
+        run: & "$env:VSSDK\bin\VSIXValidator.exe" "debug" "WakaTime.SSMS20.vsix"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
