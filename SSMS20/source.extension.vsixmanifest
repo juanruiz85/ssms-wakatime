@@ -12,7 +12,9 @@
     </Metadata>
 
     <Installation>
-        <InstallationTarget Version="[17.0,18.0)" Id="Microsoft.VisualStudio.IntegratedShell" />
+        <InstallationTarget Version="[17.0,18.0)" Id="Microsoft.VisualStudio.IntegratedShell">
+            <Architecture>amd64</Architecture>
+        </InstallationTarget>
     </Installation>
 
     <Dependencies>
