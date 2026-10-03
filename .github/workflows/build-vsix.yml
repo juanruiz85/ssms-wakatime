@@ -13,16 +13,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Add MSBuild 17.x to PATH
-        uses: microsoft/setup-msbuild@v2
-        with:
-          vs-version: "[17.0,18.0)"
-
-      - name: Debug MSBuild info
+      # windows-latest currently ships VS 2026 Insiders only (setup-msbuild finds no 17.x),
+      # and windows-2019 has no VS 2022 at all. Install the VS 2022 Build Tools with the
+      # VSSDK workload explicitly so Microsoft.VsSDK.targets resolves a 17.x install.
+      - name: Install Visual Studio 2022 Build Tools (VSSDK)
         shell: pwsh
         run: |
-          msbuild -version
-          & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -all -prerelease -products * -format json | Out-String
+          Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vs_buildtools.exe" -OutFile "$env:TEMP\vsbt.exe"
+          $p = Start-Process -FilePath "$env:TEMP\vsbt.exe" -ArgumentList @(
+            '--quiet','--wait','--norestart','--nocache',
+            '--installPath','C:\BuildTools2022',
+            '--add','Microsoft.VisualStudio.Workload.VSSDKBuildTools',
+            '--add','Microsoft.VisualStudio.Component.MSBuild',
+            '--includeRecommended'
+          ) -PassThru
+          $p.WaitForExit()
+          if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) { Write-Error "VS Bootstrapper failed with code $($p.ExitCode)"; exit 1 }
+
+      - name: Locate MSBuild 17.x
+        shell: pwsh
+        run: |
+          $msb = Get-ChildItem "C:\BuildTools2022\MSBuild\Current\Bin\MSBuild.exe","C:\Program Files*\Microsoft Visual Studio\2022\*\MSBuild\Current\Bin\MSBuild.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $msb) { Write-Error "MSBuild 17 not found after install"; exit 1 }
+          "MSBUILD=$($msb.FullName)" >> $env:GITHUB_ENV
+          & $msb.FullName -version
 
       - name: Restore NuGet packages
         shell: pwsh
@@ -31,7 +45,7 @@ jobs:
       - name: Build SSMS20 VSIX (Release)
         shell: pwsh
         run: |
-          msbuild SSMS20/SSMS20.csproj -p:Configuration=Release -p:Platform=AnyCPU -p:DeployExtension=false -v:m
+          & $env:MSBUILD SSMS20/SSMS20.csproj -p:Configuration=Release -p:Platform=AnyCPU -p:DeployExtension=false -v:m
           Get-ChildItem -Recurse SSMS20/bin/Release | Select-Object FullName
 
       - name: Locate produced VSIX
