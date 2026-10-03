@@ -70,8 +70,7 @@
     <Compile Include="WakaTimePackage.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\LICENSE">
-      <Link>LICENSE</Link>
+    <Content Include="License.txt">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
     <None Include="Key.snk" />
@@ -127,11 +126,9 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- Import VSSDK targets for VSIX packaging (pkgdef generation, vsct compilation, .vsix creation).
-       The BuildTools package is restored to obj\NU1605\... or via the VssdkNuget property. -->
+       This is the standard import injected by the Microsoft.VSSDK.BuildTools NuGet package. -->
   <PropertyGroup>
-    <VssdkToolsPath Condition="Exists('$(MSBuildThisFileDirectory)obj\')">$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'Microsoft.VsSDK.targets'))</VssdkToolsPath>
+    <VSSDKTargetPlatformRegRootSuffix Condition="'$(VSSDKTargetPlatformRegRootSuffix)' == ''">Exp</VSSDKTargetPlatformRegRootSuffix>
   </PropertyGroup>
-  <Import Project="$(VSSDKTargetPath)Microsoft.VsSDK.targets" Condition="'$(VSSDKTargetPath)' != '' And Exists('$(VSSDKTargetPath)Microsoft.VsSDK.targets')" />
-  <!-- Fallback: NuGet restores BuildTools targets under packages folder / obj project.assets -->
-  <Import Project="..\packages\Microsoft.VSSDK.BuildTools.17.9.3184\tools\VSSDK\Microsoft.VsSDK.targets" Condition="Exists('..\packages\Microsoft.VSSDK.BuildTools.17.9.3184\tools\VSSDK\Microsoft.VsSDK.targets')" />
+  <Import Project="$(NuGetPackageRoot)microsoft.vssdk.buildtools\17.9.3184\tools\VSSDK\Microsoft.VsSDK.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.vssdk.buildtools\17.9.3184\tools\VSSDK\Microsoft.VsSDK.targets')" />
 </Project>
