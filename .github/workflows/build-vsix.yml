@@ -66,9 +66,10 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
         run: |
-          # Extraer el contenido del vsix a la carpeta WakaTime.v22 (como hace el release oficial)
+          # Expand-Archive solo acepta extension .zip, copiamos el vsix como zip temporal
           New-Item -ItemType Directory -Force -Path pkg/WakaTime.v22 | Out-Null
-          Expand-Archive -Path WakaTime.v22.vsix -DestinationPath pkg/WakaTime.v22 -Force
+          Copy-Item WakaTime.v22.vsix WakaTime.v22.zip
+          Expand-Archive -Path WakaTime.v22.zip -DestinationPath pkg/WakaTime.v22 -Force
           Copy-Item AddPackage.bat pkg/AddPackage.bat
           Compress-Archive -Path pkg/* -DestinationPath ("SSMS-Wakatime-{0}.zip" -f $TAG.TrimStart('v')) -Force
 
