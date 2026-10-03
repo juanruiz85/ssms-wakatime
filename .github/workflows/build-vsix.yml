@@ -40,7 +40,8 @@ jobs:
 
       - name: Restore NuGet packages
         shell: pwsh
-        run: dotnet restore SSMS20/SSMS20.csproj
+        run: |
+          & $env:MSBUILD SSMS20/SSMS20.csproj -t:Restore -p:Configuration=Release -v:m
 
       - name: Build SSMS20 VSIX (Release)
         shell: pwsh

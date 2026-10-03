@@ -23,6 +23,8 @@
     <RootNamespace>WakaTime</RootNamespace>
     <AssemblyName>WakaTime</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <!-- Required so NuGet restore resolves the 'win' RID graph for classic (non-SDK) projects -->
+    <RuntimeIdentifiers>win;win-x64</RuntimeIdentifiers>
     <GeneratePkgDefFile>true</GeneratePkgDefFile>
     <UseCodebase>true</UseCodebase>
     <IncludeAssemblyInVSIXContainer>true</IncludeAssemblyInVSIXContainer>
