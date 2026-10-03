@@ -8,52 +8,51 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2019
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@v2
-        with:
-          vs-version: '[17.0,)'
-
-      - name: Compile SSMS20 (Release DLL)
-        run: msbuild SSMS20/SSMS20.csproj -restore -p:Configuration=Release -p:Platform=AnyCPU -p:DeployExtension=false -v:m
-
-      - name: Download VSSDK 17.9 BuildTools (known-good schema 2.1.0 validator)
+      # windows-2019 ships VS 2019 (no VS 2022 MSBuild). Install the
+      # Visual Studio 2022 Build Tools so VSSDK targets resolve to a 17.x install.
+      - name: Install Visual Studio 2022 Build Tools
         shell: pwsh
         run: |
-          nuget install Microsoft.VSSDK.BuildTools -Version 17.9.3184 -OutputDirectory tools
-          "VSSDK=$env:GITHUB_WORKSPACE\tools\Microsoft.VSSDK.BuildTools.17.9.3184\tools\VSSDK" >> $env:GITHUB_ENV
+          $url = "https://aka.ms/vs/17/release/vs_buildtools.exe"
+          Invoke-WebRequest -Uri $url -OutFile "$env:TEMP\vs_buildtools.exe"
+          & "$env:TEMP\vs_buildtools.exe" --quiet --wait --norestart --nocache `
+            --installPath "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools" `
+            --add Microsoft.Component.MSBuild `
+            --add Microsoft.VisualStudio.Component.VSSDK | Out-Null
+          if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 3010) { exit 1 }
 
-      - name: Generate extension.vsixmanifest (ConvertVsixSourceManifest)
+      - name: Locate MSBuild 17.x
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path SSMS20\obj\Release | Out-Null
-          & "$env:VSSDK\bin\ConvertVsixSourceManifest.exe" "SSMS20\source.extension.vsixmanifest" "SSMS20\obj\Release\extension.vsixmanifest" "WakaTime.pkgdef"
-          Get-Content SSMS20\obj\Release\extension.vsixmanifest
+          $msbuild = "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe"
+          if (-not (Test-Path $msbuild)) {
+            $msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
+              -latest -products * -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
+          }
+          "MSBUILD=$msbuild" >> $env:GITHUB_ENV
 
-      - name: Create VSIX package (CreateVsixContainer)
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: dotnet restore SSMS20/SSMS20.csproj
+
+      - name: Build SSMS20 VSIX (Release)
         shell: pwsh
         run: |
-          $files = @(
-            @{ Src="SSMS20\bin\Release\WakaTime.dll";          Dst="WakaTime.dll" },
-            @{ Src="SSMS20\bin\Release\WakaTime.pkgdef";       Dst="WakaTime.pkgdef" },
-            @{ Src="SSMS20\obj\Release\extension.vsixmanifest";Dst="extension.vsixmanifest" },
-            @{ Src="SSMS20\WakaTime.vsct";                       Dst="WakaTime.vsct" }
-          )
-          if (Test-Path "SSMS20\LICENSE") { $files += @{ Src="SSMS20\LICENSE"; Dst="License.rtf" } }
-          if (Test-Path "SSMS20\Assets\wakatime-120.png") { $files += @{ Src="SSMS20\Assets\wakatime-120.png"; Dst="Resources\wakatime-120.png" } }
-          if (Test-Path "SSMS20\Assets\dashboard.png") { $files += @{ Src="SSMS20\Assets\dashboard.png"; Dst="Resources\dashboard.png" } }
-          $args = @("$env:VSSDK\bin\CreateVsixContainer.exe", "-manifest", "SSMS20\obj\Release\extension.vsixmanifest", "-vsix", "WakaTime.SSMS20.vsix")
-          foreach ($f in $files) { $args += @("-file", "$($f.Dst)=$($f.Src)") }
-          & $args[0] $args[1..($args.Length-1)]
-          if (-not (Test-Path WakaTime.SSMS20.vsix)) { Write-Error "VSIX not created"; exit 1 }
+          & $env:MSBUILD SSMS20/SSMS20.csproj -p:Configuration=Release -p:Platform=AnyCPU -p:DeployExtension=false -v:m
+          Get-ChildItem -Recurse SSMS20/bin/Release | Select-Object FullName
 
-      - name: Validate VSIX (VSIXValidator)
+      - name: Locate produced VSIX
+        id: findvsix
         shell: pwsh
-        run: & "$env:VSSDK\bin\VSIXValidator.exe" "debug" "WakaTime.SSMS20.vsix"
+        run: |
+          $vsix = Get-ChildItem -Recurse -Filter *.vsix | Select-Object -First 1
+          if (-not $vsix) { Write-Error "No .vsix produced"; exit 1 }
+          Copy-Item $vsix.FullName "WakaTime.SSMS20.vsix"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

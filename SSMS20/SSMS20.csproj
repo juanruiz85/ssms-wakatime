@@ -126,6 +126,12 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- Microsoft.VsSDK.targets intentionally NOT imported (VS 18 Insiders on runner injects old XSD)
-  <PropertyGroup><SkipVSSDKTargetsImport>true</SkipVSSDKTargetsImport></PropertyGroup>
+  <!-- Import VSSDK targets for VSIX packaging (pkgdef generation, vsct compilation, .vsix creation).
+       The BuildTools package is restored to obj\NU1605\... or via the VssdkNuget property. -->
+  <PropertyGroup>
+    <VssdkToolsPath Condition="Exists('$(MSBuildThisFileDirectory)obj\')">$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'Microsoft.VsSDK.targets'))</VssdkToolsPath>
+  </PropertyGroup>
+  <Import Project="$(VSSDKTargetPath)Microsoft.VsSDK.targets" Condition="'$(VSSDKTargetPath)' != '' And Exists('$(VSSDKTargetPath)Microsoft.VsSDK.targets')" />
+  <!-- Fallback: NuGet restores BuildTools targets under packages folder / obj project.assets -->
+  <Import Project="..\packages\Microsoft.VSSDK.BuildTools.17.9.3184\tools\VSSDK\Microsoft.VsSDK.targets" Condition="Exists('..\packages\Microsoft.VSSDK.BuildTools.17.9.3184\tools\VSSDK\Microsoft.VsSDK.targets')" />
 </Project>
