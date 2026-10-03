@@ -25,12 +25,22 @@ Metrics, insights, and time tracking automatically generated from your programmi
     3. For SSMS `v19`:
         1. Copy the folder `WakaTime.v18` to the desired installation folder:
             * v19 - `C:\Program Files (x86)\Microsoft SQL Server Management Studio 19\Common7\IDE\Extensions\`
-    4. For SSMS `v20` / `v21` (Microsoft SQL Management Studio 22):
-        1. Build the `SSMS20` project (`SSMS20\SSMS20.csproj`) in `Release` mode.
-        2. Copy the folder `WakaTime.v20` (output of the `SSMS20` project) to the desired installation folder:
-            * v20 - `C:\Program Files\Microsoft SQL Server Management Studio 20\Common7\IDE\Extensions\`
-            * v21 - `C:\Program Files\Microsoft SQL Server Management Studio 21\Common7\IDE\Extensions\`
-            * Microsoft SQL Management Studio 22 - `C:\Program Files\Microsoft SQL Server Management Studio 22\Common7\IDE\Extensions\`
+    4. For SSMS `v20` / `v21` / `v22` (Microsoft SQL Management Studio 22):
+        1. Download the prebuilt release from <https://github.com/juanruiz85/ssms-wakatime/releases/latest>:
+            * `WakaTime.v22.vsix` - installer package (the `.v22` suffix makes VSIXInstaller.exe detect it as an SSMS extension, not Visual Studio).
+            * `SSMS-Wakatime-<version>.zip` - folder with compiled binaries + `AddPackage.bat` (same layout as the official releases).
+        2. IMPORTANT: do NOT install the .vsix by double-clicking if you have Visual Studio 2022 installed, because it will offer to install into VS instead of SSMS. Use one of these two options:
+            * Option A (recommended - manual install, like the official WakaTime releases):
+                1. Unblock and unzip `SSMS-Wakatime-<version>.zip`.
+                2. Copy the folder `WakaTime.v22` to:
+                    * v20 - `C:\Program Files\Microsoft SQL Server Management Studio 20\Common7\IDE\Extensions\`
+                    * v21 - `C:\Program Files\Microsoft SQL Server Management Studio 21\Common7\IDE\Extensions\`
+                    * v22 - `C:\Program Files\Microsoft SQL Server Management Studio 22\Common7\IDE\Extensions\`
+                3. Run `AddPackage.bat` as administrator (adds the SkipLoading registry entry for the SSMS package whitelist).
+                4. Restart SSMS. On first use, SSMS may show a security dialog about the unsigned package - accept it. Then go to `Tools > Options > WakaTime` and enter your API key.
+            * Option B (installer): run from a command prompt:
+                `"C:\Program Files\Microsoft SQL Server Management Studio 22\Common7\VSIXInstaller.exe" WakaTime.v22.vsix`
+                (use the VSIXInstaller.exe that ships WITH SSMS 22, not the one from Visual Studio).
         > Note: SSMS v20+ is built on the Visual Studio 2022 (v17.x) shell, so it requires the
         > `SSMS20` project binaries compiled against the VS 2022 SDK. The old `WakaTime.v18`
         > binaries (built for the v15/v16 shell) will NOT load in SSMS v20+.
