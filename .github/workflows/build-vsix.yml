@@ -65,10 +65,22 @@ jobs:
           name: WakaTime.SSMS20.vsix
           path: WakaTime.SSMS20.vsix
 
+      - name: Create GitHub Release
+        id: create_release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create $TAG --title "WakaTime para SSMS 20/21/22 ($TAG)" --notes "Extensión WakaTime compilada para SQL Server Management Studio 20/21/22 (VS 2022 shell). Descarga WakaTime.SSMS20.vsix e instálalo con VSIXInstaller." $env:TAG 2>$null
+          if ($LASTEXITCODE -ne 0) { Write-Host "Release ya existe o error controlado" }
+
       - name: Upload VSIX to Release
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: WakaTime.SSMS20.vsix
+        shell: pwsh
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release upload $env:TAG WakaTime.SSMS20.vsix --clobber
