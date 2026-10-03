@@ -1,0 +1,5 @@
+<Project>
+  <!-- Override the VSSDK ValidateVsixManifest target (VSSDK1062 schema validation) which on
+       the hosted runners resolves an outdated XSD that does not declare Dependencies/Assets. -->
+  <Target Name="ValidateVsixManifest" DependsOnTargets="$(ValidateVsixManifestDependsOn)" />
+</Project>

@@ -133,4 +133,10 @@
     <VSSDKTargetPlatformRegRootSuffix Condition="'$(VSSDKTargetPlatformRegRootSuffix)' == ''">Exp</VSSDKTargetPlatformRegRootSuffix>
   </PropertyGroup>
   <Import Project="$(NuGetPackageRoot)microsoft.vssdk.buildtools\17.9.3184\tools\VSSDK\Microsoft.VsSDK.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.vssdk.buildtools\17.9.3184\tools\VSSDK\Microsoft.VsSDK.targets')" />
+  <!-- Neutralize the VSSDK1062 manifest schema validation: on GitHub hosted runners the
+       ValidateVsixManifest target resolves an outdated XSD (from the VS Insiders extension
+       SDK) that does not declare the Dependencies/Assets elements, even though the manifest
+       is perfectly valid for VS 2022 / SSMS 20+. Re-declare the target as a no-op AFTER the
+       VSSDK targets import so ours wins (last import definition wins in MSBuild). -->
+  <Import Project="VssdkOverride.targets" />
 </Project>

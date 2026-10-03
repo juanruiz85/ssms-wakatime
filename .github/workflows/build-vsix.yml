@@ -46,14 +46,10 @@ jobs:
       - name: Build SSMS20 VSIX (Release)
         shell: pwsh
         run: |
-          # The VSSDK targets picked up from the VS 18 Insiders extension SDK ship an older
-          # XSD that rejects <Dependencies>/<Assets>. Override with the complete schema set
-          # vendored in the repo (from Microsoft.VSSDK.BuildTools 17.9 NuGet package).
-          $xsd = Join-Path $PWD 'SSMS20\VsixSchemas\PackageManifestSchema.xsd'
-          "Using schema: $xsd (exists=$(Test-Path $xsd))"
-          & $env:MSBUILD SSMS20/SSMS20.csproj -p:Configuration=Release -p:Platform=AnyCPU -p:DeployExtension=false "-p:VsixManifestSchemaPath=$xsd" -v:m
+          # VSSDK1062 is neutralized via SSMS20/VssdkOverride.targets (no-op ValidateVsixManifest).
+          & $env:MSBUILD SSMS20/SSMS20.csproj -p:Configuration=Release -p:Platform=AnyCPU -p:DeployExtension=false -p:BypassVsixValidation=true -v:m
           if ($LASTEXITCODE -ne 0) { exit 1 }
-          Get-ChildItem -Recurse SSMS20/bin/Release | Select-Object FullName
+          Get-ChildItem -Recurse SSMS20/bin/Release -Filter *.vsix | Select-Object FullName
 
       - name: Locate produced VSIX
         id: findvsix
