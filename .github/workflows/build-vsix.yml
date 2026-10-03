@@ -51,28 +51,65 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit 1 }
           Get-ChildItem -Recurse SSMS20/bin/Release -Filter *.vsix | Select-Object FullName
 
-      - name: Locate produced VSIX and build SSMS package
-        id: findvsix
+      - name: Build SSMS18 binaries (dll + pkgdef only)
         shell: pwsh
         run: |
-          $vsix = Get-ChildItem -Recurse -Filter *.vsix | Select-Object -First 1
-          if (-not $vsix) { Write-Error "No .vsix produced"; exit 1 }
-          # Nombre con sufijo .v22 para que VSIXInstaller.exe lo detecte como
-          # extension de SQL Server Management Studio 20/21/22 (no de Visual Studio).
-          Copy-Item $vsix.FullName "WakaTime.v22.vsix"
+          # SSMS18 usa VSSDK.BuildTools 16.x, incompatible con MSBuild 17 al EMPAQUETAR
+          # VSIX (VSSDK1311), por eso se compila solo el binario (CreateVsixContainer=false)
+          # y la carpeta WakaTime.v18 del ZIP se arma a mano en el paso de empaquetado.
+          & $env:MSBUILD SSMS18/SSMS18.csproj -t:Restore,Build -p:Configuration=Release -p:Platform=AnyCPU -p:DeployExtension=false -p:CreateVsixContainer=false -v:m
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Download official binaries (legacy WakaTime folder)
+        shell: pwsh
+        run: |
+          # El proyecto legado WakaTime (VS 2017 / carpetas v14/v15) no es recompilable de
+          # forma reproducible aqui: depende de paquetes NuGet de 2015 y de una carpeta
+          # assemblies/ que no esta en el repositorio. Se reutiliza tal cual el binario de
+          # la release oficial wakatime/ssms-wakatime v4.1.1 (misma licencia MIT).
+          Invoke-WebRequest -Uri "https://github.com/wakatime/ssms-wakatime/releases/download/v4.1.1/SSMS-Wakatime-4.1.1.zip" -OutFile official.zip
+          Expand-Archive -Path official.zip -DestinationPath official -Force
+          Get-ChildItem official | Select-Object Name
 
       - name: Package binaries zip (official layout)
         shell: pwsh
         env:
           TAG: ${{ github.ref_name }}
         run: |
-          # Expand-Archive solo acepta extension .zip, copiamos el vsix como zip temporal
+          # Layout identico al ZIP oficial SSMS-Wakatime-4.1.1.zip, mas la carpeta nueva:
+          #   WakaTime/       -> copiado de la release oficial (VS 2017 legacy)
+          #   WakaTime.v18/   -> base oficial con WakaTime.dll/pkgdef RECOMPILADOS por CI
+          #   WakaTime.v22/   -> extracto del VSIX nuevo compilado para SSMS 20/21/22
+          #   AddPackage.bat
+          function Extract-Vsix($src, $dest) {
+            $tmp = "$dest.tmp.zip"
+            Copy-Item $src $tmp -Force
+            Expand-Archive -Path $tmp -DestinationPath $dest -Force
+            Remove-Item $tmp
+          }
           $ver = "$env:TAG".TrimStart('v')
-          New-Item -ItemType Directory -Force -Path pkg/WakaTime.v22 | Out-Null
-          Copy-Item WakaTime.v22.vsix WakaTime.v22.zip
-          Expand-Archive -Path WakaTime.v22.zip -DestinationPath pkg/WakaTime.v22 -Force
+          New-Item -ItemType Directory -Force -Path pkg | Out-Null
+          # 1) WakaTime/ legado: exactamente el de la release oficial
+          Copy-Item -Recurse -Force official/WakaTime pkg/WakaTime
+          # 2) WakaTime.v18/: base oficial + binarios recompilados por este pipeline
+          Copy-Item -Recurse -Force official/WakaTime.v18 pkg/WakaTime.v18
+          $dll = Get-ChildItem -Recurse SSMS18/bin/Release -Filter WakaTime.dll | Where-Object { $_.FullName -notmatch 'ref|intellisense' } | Select-Object -First 1
+          if (-not $dll) { Write-Error "WakaTime.dll de SSMS18 no encontrado"; exit 1 }
+          Copy-Item $dll.FullName pkg/WakaTime.v18/WakaTime.dll -Force
+          $pkgdef = Get-ChildItem -Recurse SSMS18/bin/Release -Filter WakaTime.pkgdef | Select-Object -First 1
+          if ($pkgdef) { Copy-Item $pkgdef.FullName pkg/WakaTime.v18/WakaTime.pkgdef -Force }
+          $shared = Get-ChildItem -Recurse SSMS18/bin/Release -Filter WakaTime.Shared.ExtensionUtils.dll | Select-Object -First 1
+          if ($shared) { Copy-Item $shared.FullName pkg/WakaTime.v18/WakaTime.Shared.ExtensionUtils.dll -Force }
+          # 3) WakaTime.v22/: VSIX recien compilado, extraido
+          $vsix22 = Get-ChildItem -Recurse -Filter *.vsix | Where-Object { $_.FullName -match 'SSMS20' } | Select-Object -First 1
+          if (-not $vsix22) { Write-Error "VSIX SSMS20 no encontrado"; exit 1 }
+          # Nombre con sufijo .v22 para que VSIXInstaller.exe lo detecte como
+          # extension de SQL Server Management Studio 20/21/22 (no de Visual Studio).
+          Copy-Item $vsix22.FullName "WakaTime.v22.vsix" -Force
+          Extract-Vsix $vsix22.FullName pkg/WakaTime.v22
           Copy-Item AddPackage.bat pkg/AddPackage.bat
           Compress-Archive -Path pkg/* -DestinationPath "SSMS-Wakatime-$ver.zip" -Force
+          Get-ChildItem pkg | Select-Object Name
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
