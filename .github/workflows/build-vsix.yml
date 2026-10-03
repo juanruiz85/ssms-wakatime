@@ -46,20 +46,12 @@ jobs:
       - name: Build SSMS20 VSIX (Release)
         shell: pwsh
         run: |
-          # The VSSDK targets shipped inside VS 2022 Build Tools reference the VS 18 Insiders
-          # extension SDK, whose bundled XSD is older and rejects <Dependencies>/<Assets>.
-          # Override it with the correct 2.0 schema from the NuGet VSSDK package.
-          $xsd = Get-ChildItem "$env:USERPROFILE\.nuget\packages\microsoft.vssdk.buildtools" -Recurse -Filter ExtensionManifestSchema20*.xsd | Select-Object -First 1
-          if (-not $xsd) { $xsd = Get-ChildItem $env:NUGET_PACKAGES -Recurse -Filter *ExtensionVsixSchema*.xsd -ErrorAction SilentlyContinue | Select-Object -First 1 }
-          if ($xsd) { "Using schema: $($xsd.FullName)" } else { "WARNING: no override XSD found" }
-          $args = @('SSMS20/SSMS20.csproj','-p:Configuration=Release','-p:Platform=AnyCPU','-p:DeployExtension=false','-v:m')
-          if ($xsd) { $args += "-p:VisualStudioVsixSchema=$($xsd.FullName)" }
-          & $env:MSBUILD @args
-          # If the property override didn't take effect, retry skipping validation entirely
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host 'Retrying with VsixSkipSchemaValidation...'
-            & $env:MSBUILD SSMS20/SSMS20.csproj -p:Configuration=Release -p:Platform=AnyCPU -p:DeployExtension=false -p:EnableVsixSchemaValidation=false -p:SkipValidateExtension=true -v:m
-          }
+          # The VSSDK targets picked up from the VS 18 Insiders extension SDK ship an older
+          # XSD that rejects <Dependencies>/<Assets>. Override with the complete schema set
+          # vendored in the repo (from Microsoft.VSSDK.BuildTools 17.9 NuGet package).
+          $xsd = Join-Path $PWD 'SSMS20\VsixSchemas\PackageManifestSchema.xsd'
+          "Using schema: $xsd (exists=$(Test-Path $xsd))"
+          & $env:MSBUILD SSMS20/SSMS20.csproj -p:Configuration=Release -p:Platform=AnyCPU -p:DeployExtension=false "-p:VsixManifestSchemaPath=$xsd" -v:m
           if ($LASTEXITCODE -ne 0) { exit 1 }
           Get-ChildItem -Recurse SSMS20/bin/Release | Select-Object FullName
 
