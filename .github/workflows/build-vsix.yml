@@ -67,11 +67,12 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           # Expand-Archive solo acepta extension .zip, copiamos el vsix como zip temporal
+          $ver = "$env:TAG".TrimStart('v')
           New-Item -ItemType Directory -Force -Path pkg/WakaTime.v22 | Out-Null
           Copy-Item WakaTime.v22.vsix WakaTime.v22.zip
           Expand-Archive -Path WakaTime.v22.zip -DestinationPath pkg/WakaTime.v22 -Force
           Copy-Item AddPackage.bat pkg/AddPackage.bat
-          Compress-Archive -Path pkg/* -DestinationPath ("SSMS-Wakatime-{0}.zip" -f $TAG.TrimStart('v')) -Force
+          Compress-Archive -Path pkg/* -DestinationPath "SSMS-Wakatime-$ver.zip" -Force
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
