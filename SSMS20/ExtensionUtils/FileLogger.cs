@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.IO;
+using WakaTime.Shared.ExtensionUtils;
 
 namespace WakaTime.ExtensionUtils
 {
@@ -9,7 +10,7 @@ namespace WakaTime.ExtensionUtils
     /// Se usa junto con el OutputWindow para que el modo Debug deje también
     /// rastro en disco, independientemente de si la ventana de salida está visible.
     /// </summary>
-    public class FileLogger : Shared.ExtensionUtils.ILogger
+    public class FileLogger : ILogger
     {
         private readonly string _logFilePath;
         private readonly ILogger _outputLogger;
