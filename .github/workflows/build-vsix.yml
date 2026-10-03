@@ -51,19 +51,34 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit 1 }
           Get-ChildItem -Recurse SSMS20/bin/Release -Filter *.vsix | Select-Object FullName
 
-      - name: Locate produced VSIX
+      - name: Locate produced VSIX and build SSMS package
         id: findvsix
         shell: pwsh
         run: |
           $vsix = Get-ChildItem -Recurse -Filter *.vsix | Select-Object -First 1
           if (-not $vsix) { Write-Error "No .vsix produced"; exit 1 }
-          Copy-Item $vsix.FullName "WakaTime.SSMS20.vsix"
+          # Nombre con sufijo .v22 para que VSIXInstaller.exe lo detecte como
+          # extension de SQL Server Management Studio 20/21/22 (no de Visual Studio).
+          Copy-Item $vsix.FullName "WakaTime.v22.vsix"
+
+      - name: Package binaries zip (official layout)
+        shell: pwsh
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          # Extraer el contenido del vsix a la carpeta WakaTime.v22 (como hace el release oficial)
+          New-Item -ItemType Directory -Force -Path pkg/WakaTime.v22 | Out-Null
+          Expand-Archive -Path WakaTime.v22.vsix -DestinationPath pkg/WakaTime.v22 -Force
+          Copy-Item AddPackage.bat pkg/AddPackage.bat
+          Compress-Archive -Path pkg/* -DestinationPath ("SSMS-Wakatime-{0}.zip" -f $TAG.TrimStart('v')) -Force
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: WakaTime.SSMS20.vsix
-          path: WakaTime.SSMS20.vsix
+          name: WakaTime.v22.vsix
+          path: |
+            WakaTime.v22.vsix
+            SSMS-Wakatime-*.zip
 
       - name: Create GitHub Release
         id: create_release
@@ -83,4 +98,6 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASE_PAT }}
           TAG: ${{ github.ref_name }}
         run: |
-          gh release upload $env:TAG WakaTime.SSMS20.vsix --clobber
+          gh release upload $env:TAG WakaTime.v22.vsix --clobber
+          $zip = Get-ChildItem -Filter "SSMS-Wakatime-*.zip" | Select-Object -First 1
+          if ($zip) { gh release upload $env:TAG $zip.FullName --clobber }
