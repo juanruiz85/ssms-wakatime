@@ -54,6 +54,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="ExtensionUtils\FileLogger.cs" />
     <Compile Include="ExtensionUtils\Logger.cs" />
     <Compile Include="Forms\ApiKeyForm.cs">
       <SubType>Form</SubType>

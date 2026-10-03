@@ -74,7 +74,11 @@ namespace WakaTime
                 PluginVersion = Constants.PluginVersion
             };
 
-            _logger = new Logger(Dependencies.GetConfigFilePath());
+            // El modo Debug escribe en la ventana de salida "WakaTime" (Ver > Ventana de salida)
+            // y además en ~/.wakatime/wakatime.log para poder revisarlo sin abrir SSMS.
+            var wakatimeHome = System.IO.Path.GetDirectoryName(Dependencies.GetConfigFilePath());
+            var logFile = System.IO.Path.Combine(wakatimeHome, "wakatime.log");
+            _logger = new FileLogger(new Logger(Dependencies.GetConfigFilePath()), logFile);
             _wakatime = new Shared.ExtensionUtils.WakaTime(metadata, _logger);
 
             _logger.Debug("It will load WakaTime extension");
